@@ -3,9 +3,9 @@
 
 import Foundation
 
-public struct PeerConfiguration {
-    public var publicKey: PublicKey
-    public var preSharedKey: PreSharedKey?
+public struct KratonPeerConfig {
+    public var publicKey: KratonPublicKey
+    public var preSharedKey: KratonPreSharedKey?
     public var allowedIPs = [IPAddressRange]()
     public var endpoint: Endpoint?
     public var persistentKeepAlive: UInt16?
@@ -13,13 +13,13 @@ public struct PeerConfiguration {
     public var txBytes: UInt64?
     public var lastHandshakeTime: Date?
 
-    public init(publicKey: PublicKey) {
+    public init(publicKey: KratonPublicKey) {
         self.publicKey = publicKey
     }
 }
 
-extension PeerConfiguration: Equatable {
-    public static func == (lhs: PeerConfiguration, rhs: PeerConfiguration) -> Bool {
+extension KratonPeerConfig: Equatable {
+    public static func == (lhs: KratonPeerConfig, rhs: KratonPeerConfig) -> Bool {
         return lhs.publicKey == rhs.publicKey &&
             lhs.preSharedKey == rhs.preSharedKey &&
             Set(lhs.allowedIPs) == Set(rhs.allowedIPs) &&
@@ -28,7 +28,7 @@ extension PeerConfiguration: Equatable {
     }
 }
 
-extension PeerConfiguration: Hashable {
+extension KratonPeerConfig: Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(publicKey)
         hasher.combine(preSharedKey)

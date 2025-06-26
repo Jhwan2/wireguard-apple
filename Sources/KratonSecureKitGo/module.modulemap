@@ -1,0 +1,5 @@
+module KratonSecureKitGo {
+    umbrella header "kratonsecure.h"
+    link "wg-go"
+    export *
+}

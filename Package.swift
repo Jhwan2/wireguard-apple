@@ -4,27 +4,27 @@
 import PackageDescription
 
 let package = Package(
-    name: "WireGuardKit",
+    name: "KratonSecureKit",
     platforms: [
         .macOS(.v12),
         .iOS(.v15)
     ],
     products: [
-        .library(name: "WireGuardKit", targets: ["WireGuardKit"])
+        .library(name: "KratonSecureKit", targets: ["KratonSecureKit"])
     ],
     dependencies: [],
     targets: [
         .target(
-            name: "WireGuardKit",
-            dependencies: ["WireGuardKitGo", "WireGuardKitC"]
+            name: "KratonSecureKit",
+            dependencies: ["KratonSecureKitGo", "KratonSecureKitC"]
         ),
         .target(
-            name: "WireGuardKitC",
+            name: "KratonSecureKitC",
             dependencies: [],
             publicHeadersPath: "."
         ),
         .target(
-            name: "WireGuardKitGo",
+            name: "KratonSecureKitGo",
             dependencies: [],
             exclude: [
                 "goruntime-boottime-over-monotonic.diff",

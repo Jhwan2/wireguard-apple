@@ -5,11 +5,11 @@ import Foundation
 import NetworkExtension
 
 #if SWIFT_PACKAGE
-import WireGuardKitGo
-import WireGuardKitC
+import KratonSecureKitGo
+import KratonSecureKitC
 #endif
 
-public enum WireGuardAdapterError: Error {
+public enum KratonSecureAdapterError: Error {
     /// Failure to locate tunnel file descriptor.
     case cannotLocateTunnelFileDescriptor
 
@@ -26,7 +26,7 @@ public enum WireGuardAdapterError: Error {
     case startWireGuardBackend(Int32)
 }
 
-/// Enum representing internal state of the `WireGuardAdapter`
+/// Enum representing internal state of the `KratonSecureAdapter`
 private enum State {
     /// The tunnel is stopped
     case stopped
@@ -38,8 +38,8 @@ private enum State {
     case temporaryShutdown(_ settingsGenerator: PacketTunnelSettingsGenerator)
 }
 
-public class WireGuardAdapter {
-    public typealias LogHandler = (WireGuardLogLevel, String) -> Void
+public class KratonSecureAdapter {
+    public typealias LogHandler = (KratonSecureLogLevel, String) -> Void
 
     /// Network routes monitor.
     private var networkMonitor: NWPathMonitor?
@@ -50,8 +50,8 @@ public class WireGuardAdapter {
     /// Log handler closure.
     private let logHandler: LogHandler
 
-    /// Private queue used to synchronize access to `WireGuardAdapter` members.
-    private let workQueue = DispatchQueue(label: "WireGuardAdapterWorkQueue")
+    /// Private queue used to synchronize access to `KratonSecureAdapter` members.
+    private let workQueue = DispatchQueue(label: "KratonSecureAdapterWorkQueue")
 
     /// Adapter state.
     private var state: State = .stopped
@@ -89,7 +89,7 @@ public class WireGuardAdapter {
         return nil
     }
 
-    /// Returns a WireGuard version.
+    /// Returns a KratonSecure version.
     class var backendVersion: String {
         guard let ver = wgVersion() else { return "unknown" }
         let str = String(cString: ver)
@@ -174,7 +174,7 @@ public class WireGuardAdapter {
     /// - Parameters:
     ///   - tunnelConfiguration: tunnel configuration.
     ///   - completionHandler: completion handler.
-    public func start(tunnelConfiguration: TunnelConfiguration, completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
+    public func start(tunnelConfiguration: KratonTunnelConfig, completionHandler: @escaping (KratonSecureAdapterError?) -> Void) {
         workQueue.async {
             guard case .stopped = self.state else {
                 completionHandler(.invalidState)
@@ -287,17 +287,17 @@ public class WireGuardAdapter {
 
     // MARK: - Private methods
 
-    /// Setup WireGuard log handler.
+    /// Setup KratonSecure log handler.
     private func setupLogHandler() {
         let context = Unmanaged.passUnretained(self).toOpaque()
         wgSetLogger(context) { context, logLevel, message in
             guard let context = context, let message = message else { return }
 
-            let unretainedSelf = Unmanaged<WireGuardAdapter>.fromOpaque(context)
+            let unretainedSelf = Unmanaged<KratonSecureAdapter>.fromOpaque(context)
                 .takeUnretainedValue()
 
             let swiftString = String(cString: message).trimmingCharacters(in: .newlines)
-            let tunnelLogLevel = WireGuardLogLevel(rawValue: logLevel) ?? .verbose
+            let tunnelLogLevel = KratonSecureLogLevel(rawValue: logLevel) ?? .verbose
 
             unretainedSelf.logHandler(tunnelLogLevel, swiftString)
         }
@@ -330,7 +330,7 @@ public class WireGuardAdapter {
 
         if condition.wait(until: Date().addingTimeInterval(setTunnelNetworkSettingsTimeout)) {
             if let systemError = systemError {
-                throw WireGuardAdapterError.setNetworkSettings(systemError)
+                throw KratonSecureAdapterError.setNetworkSettings(systemError)
             }
         } else {
             self.logHandler(.error, "setTunnelNetworkSettings timed out after 5 seconds; proceeding anyway")
@@ -339,9 +339,9 @@ public class WireGuardAdapter {
 
     /// Resolve peers of the given tunnel configuration.
     /// - Parameter tunnelConfiguration: tunnel configuration.
-    /// - Throws: an error of type `WireGuardAdapterError`.
+    /// - Throws: an error of type `KratonSecureAdapterError`.
     /// - Returns: The list of resolved endpoints.
-    private func resolvePeers(for tunnelConfiguration: TunnelConfiguration) throws -> [Endpoint?] {
+    private func resolvePeers(for tunnelConfiguration: KratonTunnelConfig) throws -> [Endpoint?] {
         let endpoints = tunnelConfiguration.peers.map { $0.endpoint }
         let resolutionResults = DNSResolver.resolveSync(endpoints: endpoints)
         let resolutionErrors = resolutionResults.compactMap { result -> DNSResolutionError? in
@@ -353,7 +353,7 @@ public class WireGuardAdapter {
         }
         assert(endpoints.count == resolutionResults.count)
         guard resolutionErrors.isEmpty else {
-            throw WireGuardAdapterError.dnsResolution(resolutionErrors)
+            throw KratonSecureAdapterError.dnsResolution(resolutionErrors)
         }
 
         let resolvedEndpoints = resolutionResults.map { result -> Endpoint? in
@@ -364,18 +364,18 @@ public class WireGuardAdapter {
         return resolvedEndpoints
     }
 
-    /// Start WireGuard backend.
-    /// - Parameter wgConfig: WireGuard configuration
-    /// - Throws: an error of type `WireGuardAdapterError`
+    /// Start KratonSecure backend.
+    /// - Parameter wgConfig: KratonSecure configuration
+    /// - Throws: an error of type `KratonSecureAdapterError`
     /// - Returns: tunnel handle
     private func startWireGuardBackend(wgConfig: String) throws -> Int32 {
         guard let tunnelFileDescriptor = self.tunnelFileDescriptor else {
-            throw WireGuardAdapterError.cannotLocateTunnelFileDescriptor
+            throw KratonSecureAdapterError.cannotLocateTunnelFileDescriptor
         }
 
         let handle = wgTurnOn(wgConfig, tunnelFileDescriptor)
         if handle < 0 {
-            throw WireGuardAdapterError.startWireGuardBackend(handle)
+            throw KratonSecureAdapterError.startWireGuardBackend(handle)
         }
         #if os(iOS)
         wgDisableSomeRoamingForBrokenMobileSemantics(handle)
@@ -384,10 +384,10 @@ public class WireGuardAdapter {
     }
 
     /// Resolves the hostnames in the given tunnel configuration and return settings generator.
-    /// - Parameter tunnelConfiguration: an instance of type `TunnelConfiguration`.
-    /// - Throws: an error of type `WireGuardAdapterError`.
+    /// - Parameter tunnelConfiguration: an instance of type `KratonTunnelConfig`.
+    /// - Throws: an error of type `KratonSecureAdapterError`.
     /// - Returns: an instance of type `PacketTunnelSettingsGenerator`.
-    private func makeSettingsGenerator(with tunnelConfiguration: TunnelConfiguration) throws -> PacketTunnelSettingsGenerator {
+    private func makeSettingsGenerator(with tunnelConfiguration: KratonTunnelConfig) throws -> PacketTunnelSettingsGenerator {
         return PacketTunnelSettingsGenerator(
             tunnelConfiguration: tunnelConfiguration,
             resolvedEndpoints: try self.resolvePeers(for: tunnelConfiguration)
@@ -466,8 +466,8 @@ public class WireGuardAdapter {
     }
 }
 
-/// A enum describing WireGuard log levels defined in `api-apple.go`.
-public enum WireGuardLogLevel: Int32 {
+/// A enum describing KratonSecure log levels defined in `api-apple.go`.
+public enum KratonSecureLogLevel: Int32 {
     case verbose = 0
     case error = 1
 }

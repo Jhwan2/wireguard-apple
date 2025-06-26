@@ -1,0 +1,4 @@
+module KratonSecureKitC {
+    umbrella header "KratonSecureKitC.h"
+    export *
+}

@@ -6,17 +6,17 @@ import Network
 import NetworkExtension
 
 #if SWIFT_PACKAGE
-import WireGuardKitC
+import KratonSecureKitC
 #endif
 
 /// A type alias for `Result` type that holds a tuple with source and resolved endpoint.
 typealias EndpointResolutionResult = Result<(Endpoint, Endpoint), DNSResolutionError>
 
 class PacketTunnelSettingsGenerator {
-    let tunnelConfiguration: TunnelConfiguration
+    let tunnelConfiguration: KratonTunnelConfig
     let resolvedEndpoints: [Endpoint?]
 
-    init(tunnelConfiguration: TunnelConfiguration, resolvedEndpoints: [Endpoint?]) {
+    init(tunnelConfiguration: KratonTunnelConfig, resolvedEndpoints: [Endpoint?]) {
         self.tunnelConfiguration = tunnelConfiguration
         self.resolvedEndpoints = resolvedEndpoints
     }

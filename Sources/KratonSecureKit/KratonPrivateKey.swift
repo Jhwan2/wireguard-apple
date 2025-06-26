@@ -4,14 +4,14 @@
 import Foundation
 
 #if SWIFT_PACKAGE
-import WireGuardKitC
+import KratonSecureKitC
 #endif
 
-/// The class describing a private key used by WireGuard.
-public class PrivateKey: BaseKey {
+/// The class describing a private key used by KratonSecure.
+public class KratonPrivateKey: KratonBaseKey {
     /// Derived public key
-    public var publicKey: PublicKey {
-        return rawValue.withUnsafeBytes { (privateKeyBufferPointer: UnsafeRawBufferPointer) -> PublicKey in
+    public var publicKey: KratonPublicKey {
+        return rawValue.withUnsafeBytes { (privateKeyBufferPointer: UnsafeRawBufferPointer) -> KratonPublicKey in
             var publicKeyData = Data(repeating: 0, count: Int(WG_KEY_LEN))
             let privateKeyBytes = privateKeyBufferPointer.baseAddress!.assumingMemoryBound(to: UInt8.self)
 
@@ -20,7 +20,7 @@ public class PrivateKey: BaseKey {
                 curve25519_derive_public_key(publicKeyBytes, privateKeyBytes)
             }
 
-            return PublicKey(rawValue: publicKeyData)!
+            return KratonPublicKey(rawValue: publicKeyData)!
         }
     }
 
@@ -35,14 +35,14 @@ public class PrivateKey: BaseKey {
     }
 }
 
-/// The class describing a public key used by WireGuard.
-public class PublicKey: BaseKey {}
+/// The class describing a public key used by KratonSecure.
+public class KratonPublicKey: KratonBaseKey {}
 
-/// The class describing a pre-shared key used by WireGuard.
-public class PreSharedKey: BaseKey {}
+/// The class describing a pre-shared key used by KratonSecure.
+public class KratonPreSharedKey: KratonBaseKey {}
 
 /// The base key implementation. Should not be used directly.
-public class BaseKey: RawRepresentable, Equatable, Hashable {
+public class KratonBaseKey: RawRepresentable, Equatable, Hashable {
     /// Raw key representation
     public let rawValue: Data
 
@@ -101,7 +101,7 @@ public class BaseKey: RawRepresentable, Equatable, Hashable {
         }
     }
 
-    public static func == (lhs: BaseKey, rhs: BaseKey) -> Bool {
+    public static func == (lhs: KratonBaseKey, rhs: KratonBaseKey) -> Bool {
         return lhs.rawValue.withUnsafeBytes { (lhsBytes: UnsafeRawBufferPointer) -> Bool in
             return rhs.rawValue.withUnsafeBytes { (rhsBytes: UnsafeRawBufferPointer) -> Bool in
                 return key_eq(
