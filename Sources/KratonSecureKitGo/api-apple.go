@@ -25,9 +25,9 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/unix"
-	"golang.kraton.ai/secure/conn"
-	"golang.kraton.ai/secure/device"
-	"golang.kraton.ai/secure/tun"
+	"golang.zx2c4.com/wireguard/conn"
+	"golang.zx2c4.com/wireguard/device"
+	"golang.zx2c4.com/wireguard/tun"
 )
 
 var loggerFunc unsafe.Pointer
