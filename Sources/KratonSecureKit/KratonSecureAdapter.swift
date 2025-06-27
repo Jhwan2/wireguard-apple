@@ -200,7 +200,7 @@ public class KratonSecureAdapter {
                 )
                 self.networkMonitor = networkMonitor
                 completionHandler(nil)
-            } catch let error as WireGuardAdapterError {
+            } catch let error as KratonSecureAdapterError {
                 networkMonitor.cancel()
                 completionHandler(error)
             } catch {
@@ -211,7 +211,7 @@ public class KratonSecureAdapter {
 
     /// Stop the tunnel.
     /// - Parameter completionHandler: completion handler.
-    public func stop(completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
+    public func stop(completionHandler: @escaping (KratonSecureAdapterError?) -> Void) {
         workQueue.async {
             switch self.state {
             case .started(let handle, _):
@@ -238,7 +238,7 @@ public class KratonSecureAdapter {
     /// - Parameters:
     ///   - tunnelConfiguration: tunnel configuration.
     ///   - completionHandler: completion handler.
-    public func update(tunnelConfiguration: TunnelConfiguration, completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
+    public func update(tunnelConfiguration: KratonTunnelConfig, completionHandler: @escaping (KratonSecureAdapterError?) -> Void) {
         workQueue.async {
             if case .stopped = self.state {
                 completionHandler(.invalidState)
@@ -277,7 +277,7 @@ public class KratonSecureAdapter {
                 }
 
                 completionHandler(nil)
-            } catch let error as WireGuardAdapterError {
+            } catch let error as KratonSecureAdapterError {
                 completionHandler(error)
             } catch {
                 fatalError()
