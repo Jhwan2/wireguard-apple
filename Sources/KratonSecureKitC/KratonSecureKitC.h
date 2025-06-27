@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright © 2018-2023 WireGuard LLC. All Rights Reserved.
 
+#include <sys/types.h>
+#include <sys/socket.h>
 #include "key.h"
 #include "x25519.h"
 
