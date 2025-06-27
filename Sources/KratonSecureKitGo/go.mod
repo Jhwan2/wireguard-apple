@@ -1,10 +1,10 @@
-module golang.zx2c4.com/wireguard/apple
+module golang.kraton.ai/secure/apple
 
 go 1.17
 
 require (
 	golang.org/x/sys v0.5.0
-	golang.zx2c4.com/wireguard v0.0.0-20230209153558-1e2c3e5a3c14
+	golang.kraton.ai/secure v0.0.0-20230209153558-1e2c3e5a3c14
 )
 
 require (

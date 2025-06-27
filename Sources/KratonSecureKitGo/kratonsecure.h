@@ -3,8 +3,8 @@
  * Copyright (C) 2018-2023 WireGuard LLC. All Rights Reserved.
  */
 
-#ifndef WIREGUARD_H
-#define WIREGUARD_H
+#ifndef KRATONSECURE_H
+#define KRATONSECURE_H
 
 #include <sys/types.h>
 #include <stdint.h>

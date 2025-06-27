@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT
  *
- * Copyright © 2018-2023 WireGuard LLC. All Rights Reserved.
+ * Copyright © 2018-2023 Kraton AI Corporation. All Rights Reserved.
  */
 
 #include <string.h>

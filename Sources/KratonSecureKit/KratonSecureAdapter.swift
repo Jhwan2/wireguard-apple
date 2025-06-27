@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright © 2018-2023 WireGuard LLC. All Rights Reserved.
+// Copyright © 2018-2023 Kraton AI Corporation. All Rights Reserved.
 
 import Foundation
 import NetworkExtension
@@ -22,8 +22,8 @@ public enum KratonSecureAdapterError: Error {
     /// Failure to set network settings.
     case setNetworkSettings(Error)
 
-    /// Failure to start WireGuard backend.
-    case startWireGuardBackend(Int32)
+    /// Failure to start Kraton secure backend.
+    case startKratonSecureBackend(Int32)
 }
 
 /// Enum representing internal state of the `KratonSecureAdapter`
@@ -195,7 +195,7 @@ public class KratonSecureAdapter {
                 self.logEndpointResolutionResults(resolutionResults)
 
                 self.state = .started(
-                    try self.startWireGuardBackend(wgConfig: wgConfig),
+                    try self.startKratonSecureBackend(wgConfig: wgConfig),
                     settingsGenerator
                 )
                 self.networkMonitor = networkMonitor
@@ -368,14 +368,14 @@ public class KratonSecureAdapter {
     /// - Parameter wgConfig: KratonSecure configuration
     /// - Throws: an error of type `KratonSecureAdapterError`
     /// - Returns: tunnel handle
-    private func startWireGuardBackend(wgConfig: String) throws -> Int32 {
+    private func startKratonSecureBackend(wgConfig: String) throws -> Int32 {
         guard let tunnelFileDescriptor = self.tunnelFileDescriptor else {
             throw KratonSecureAdapterError.cannotLocateTunnelFileDescriptor
         }
 
         let handle = wgTurnOn(wgConfig, tunnelFileDescriptor)
         if handle < 0 {
-            throw KratonSecureAdapterError.startWireGuardBackend(handle)
+                            throw KratonSecureAdapterError.startKratonSecureBackend(handle)
         }
         #if os(iOS)
         wgDisableSomeRoamingForBrokenMobileSemantics(handle)
@@ -449,7 +449,7 @@ public class KratonSecureAdapter {
                 self.logEndpointResolutionResults(resolutionResults)
 
                 self.state = .started(
-                    try self.startWireGuardBackend(wgConfig: wgConfig),
+                    try self.startKratonSecureBackend(wgConfig: wgConfig),
                     settingsGenerator
                 )
             } catch {
