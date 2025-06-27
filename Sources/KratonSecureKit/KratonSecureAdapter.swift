@@ -309,7 +309,7 @@ public class KratonSecureAdapter {
     ///
     /// - Parameters:
     ///   - networkSettings: an instance of type `NEPacketTunnelNetworkSettings`.
-    /// - Throws: an error of type `WireGuardAdapterError`.
+    /// - Throws: an error of type `KratonSecureAdapterError`.
     /// - Returns: `PacketTunnelSettingsGenerator`.
     private func setNetworkSettings(_ networkSettings: NEPacketTunnelNetworkSettings) throws {
         var systemError: Error?
