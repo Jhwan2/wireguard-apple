@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT
  *
- * Copyright (C) 2018-2023 WireGuard LLC. All Rights Reserved.
+ * Copyright (C) 2018-2023 KratonSecure Technologies. All Rights Reserved.
  */
 
 #ifndef KRATONSECURE_H

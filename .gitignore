@@ -45,7 +45,7 @@ Preview.html
 output
 
 # Wireguard specific
-Sources/WireGuardApp/Config/Developer.xcconfig
+Sources/KratonSecureApp/Config/Developer.xcconfig
 
 # Vim
 .*.sw*
