@@ -75,7 +75,7 @@ class PacketTunnelSettingsGenerator {
     }
 
     func generateNetworkSettings() -> NEPacketTunnelNetworkSettings {
-        /* iOS requires a tunnel endpoint, whereas in WireGuard it's valid for
+        /* iOS requires a tunnel endpoint, whereas in KratonSecure it's valid for
          * a tunnel to have no endpoint, or for there to be many endpoints, in
          * which case, displaying a single one in settings doesn't really
          * make sense. So, we fill it in with this placeholder, which is not

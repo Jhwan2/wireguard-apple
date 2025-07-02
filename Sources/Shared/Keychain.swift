@@ -27,7 +27,7 @@ class Keychain {
         if bundleIdentifier.hasSuffix(".network-extension") {
             bundleIdentifier.removeLast(".network-extension".count)
         }
-        let itemLabel = "WireGuard Tunnel: \(name)"
+        let itemLabel = "KratonSecure Tunnel: \(name)"
         var items: [CFString: Any] = [kSecClass: kSecClassGenericPassword,
                                     kSecAttrLabel: itemLabel,
                                     kSecAttrAccount: name + ": " + UUID().uuidString,
@@ -43,7 +43,7 @@ class Keychain {
         items[kSecAttrSynchronizable] = false
         items[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
 
-        guard let extensionPath = Bundle.main.builtInPlugInsURL?.appendingPathComponent("WireGuardNetworkExtension.appex", isDirectory: true).path else {
+        guard let extensionPath = Bundle.main.builtInPlugInsURL?.appendingPathComponent("KratonSecureNetworkExtension.appex", isDirectory: true).path else {
             wg_log(.error, staticMessage: "Unable to determine app extension path")
             return nil
         }

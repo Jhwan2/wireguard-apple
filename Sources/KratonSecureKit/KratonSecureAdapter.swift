@@ -152,7 +152,7 @@ public class KratonSecureAdapter {
 
     // MARK: - Public methods
 
-    /// Returns a runtime configuration from WireGuard.
+    /// Returns a runtime configuration from KratonSecure.
     /// - Parameter completionHandler: completion handler.
     public func getRuntimeConfiguration(completionHandler: @escaping (String?) -> Void) {
         workQueue.async {
@@ -245,7 +245,7 @@ public class KratonSecureAdapter {
                 return
             }
 
-            // Tell the system that the tunnel is going to reconnect using new WireGuard
+            // Tell the system that the tunnel is going to reconnect using new KratonSecure
             // configuration.
             // This will broadcast the `NEVPNStatusDidChange` notification to the GUI process.
             self.packetTunnelProvider?.reasserting = true
