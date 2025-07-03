@@ -200,7 +200,7 @@ public class KratonSecureAdapter {
     public func start(tunnelConfiguration: KratonTunnelConfig, completionHandler: @escaping (KratonSecureConnectionError?) -> Void) {
         workQueue.async {
             guard case .stopped = self.state else {
-                completionHandler(.invalidState)
+                completionHandler(.invalidConnectionState)
                 return
             }
 
@@ -276,7 +276,7 @@ public class KratonSecureAdapter {
     public func update(tunnelConfiguration: KratonTunnelConfig, completionHandler: @escaping (KratonSecureConnectionError?) -> Void) {
         workQueue.async {
             if case .stopped = self.state {
-                completionHandler(.invalidState)
+                completionHandler(.invalidConnectionState)
                 return
             }
 
@@ -293,22 +293,26 @@ public class KratonSecureAdapter {
                 try self.setNetworkSettings(settingsGenerator.generateNetworkSettings())
 
                 switch self.state {
-                case .started(let handle, _):
+                case .connected(let handle, _, let connectionTime):
                     let (wgConfig, resolutionResults) = settingsGenerator.uapiConfiguration()
                     self.logEndpointResolutionResults(resolutionResults)
 
-                    wgSetConfig(handle, wgConfig)
+                    kratonSetConfig(handle, wgConfig)
                     #if os(iOS)
-                    wgDisableSomeRoamingForBrokenMobileSemantics(handle)
+                    kratonDisableSomeRoamingForBrokenMobileSemantics(handle)
                     #endif
 
-                    self.state = .started(handle, settingsGenerator)
+                    self.state = .connected(handle, settingsGenerator, connectionTime)
 
-                case .temporaryShutdown:
-                    self.state = .temporaryShutdown(settingsGenerator)
+                case .suspended:
+                    self.state = .suspended(settingsGenerator, Date())
 
                 case .stopped:
                     fatalError()
+                
+                default:
+                    // Handle other states appropriately
+                    break
                 }
 
                 completionHandler(nil)
@@ -380,10 +384,10 @@ public class KratonSecureAdapter {
     /// - Parameter tunnelConfiguration: tunnel configuration.
     /// - Throws: an error of type `KratonSecureConnectionError`.
     /// - Returns: The list of resolved endpoints.
-    private func resolvePeers(for tunnelConfiguration: KratonTunnelConfig) throws -> [Endpoint?] {
+    private func resolvePeers(for tunnelConfiguration: KratonTunnelConfig) throws -> [KratonEndpoint?] {
         let endpoints = tunnelConfiguration.peers.map { $0.endpoint }
         let resolutionResults = DNSResolver.resolveSync(endpoints: endpoints)
-        let resolutionErrors = resolutionResults.compactMap { result -> DNSResolutionError? in
+        let resolutionErrors = resolutionResults.compactMap { result -> EndpointResolutionError? in
             if case .failure(let error) = result {
                 return error
             } else {
@@ -395,7 +399,7 @@ public class KratonSecureAdapter {
             throw KratonSecureConnectionError.endpointResolutionFailed(resolutionErrors)
         }
 
-        let resolvedEndpoints = resolutionResults.map { result -> Endpoint? in
+        let resolvedEndpoints = resolutionResults.map { result -> KratonEndpoint? in
             // swiftlint:disable:next force_try
             return try! result?.get()
         }
@@ -456,12 +460,12 @@ public class KratonSecureAdapter {
         self.logHandler(.verbose, "Network change detected with \(path.status) route and interface order \(path.availableInterfaces)")
 
         #if os(macOS)
-        if case .started(let handle, _) = self.state {
+        if case .connected(let handle, _, _) = self.state {
             kratonBumpSockets(handle)
         }
         #elseif os(iOS)
         switch self.state {
-        case .started(let handle, let settingsGenerator):
+        case .connected(let handle, let settingsGenerator, let connectionTime):
             if path.status.isSatisfiable {
                 let (wgConfig, resolutionResults) = settingsGenerator.endpointUapiConfiguration()
                 self.logEndpointResolutionResults(resolutionResults)
@@ -472,11 +476,11 @@ public class KratonSecureAdapter {
             } else {
                 self.logHandler(.verbose, "Connectivity offline, pausing backend.")
 
-                self.state = .temporaryShutdown(settingsGenerator)
+                self.state = .suspended(settingsGenerator, Date())
                 kratonTurnOff(handle)
             }
 
-        case .temporaryShutdown(let settingsGenerator):
+        case .suspended(let settingsGenerator, _):
             guard path.status.isSatisfiable else { return }
 
             self.logHandler(.verbose, "Connectivity online, resuming backend.")
@@ -487,9 +491,10 @@ public class KratonSecureAdapter {
                 let (wgConfig, resolutionResults) = settingsGenerator.uapiConfiguration()
                 self.logEndpointResolutionResults(resolutionResults)
 
-                self.state = .started(
+                self.state = .connected(
                     try self.startKratonSecureBackend(wgConfig: wgConfig),
-                    settingsGenerator
+                    settingsGenerator,
+                    Date()
                 )
             } catch {
                 self.logHandler(.error, "Failed to restart backend: \(error.localizedDescription)")

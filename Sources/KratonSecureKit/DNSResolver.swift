@@ -22,7 +22,7 @@ extension DNSResolver {
             }
         }
 
-        return endpoints.concurrentMap(queue: resolverQueue) { endpoint -> Result<Endpoint, EndpointResolutionError>? in
+        return endpoints.concurrentMap(queue: resolverQueue) { endpoint -> Result<KratonEndpoint, EndpointResolutionError>? in
             guard let endpoint = endpoint else { return nil }
 
             if endpoint.hasHostAsIPAddress() {
@@ -37,7 +37,7 @@ extension DNSResolver {
         }
     }
 
-    private static func resolveSync(endpoint: Endpoint) throws -> Endpoint {
+    private static func resolveSync(endpoint: KratonEndpoint) throws -> KratonEndpoint {
         guard case .name(let name, _) = endpoint.host else {
             return endpoint
         }
@@ -80,9 +80,9 @@ extension DNSResolver {
 
         // We prefer an IPv4 address over an IPv6 address
         if let ipv4Address = ipv4Address {
-            return Endpoint(host: .ipv4(ipv4Address), port: endpoint.port)
+            return KratonEndpoint(host: .ipv4(ipv4Address), port: endpoint.port)
         } else if let ipv6Address = ipv6Address {
-            return Endpoint(host: .ipv6(ipv6Address), port: endpoint.port)
+            return KratonEndpoint(host: .ipv6(ipv6Address), port: endpoint.port)
         } else {
             // Must never happen
             fatalError()
@@ -90,8 +90,8 @@ extension DNSResolver {
     }
 }
 
-extension Endpoint {
-    func withReresolvedIP() throws -> Endpoint {
+extension KratonEndpoint {
+    func withReresolvedIP() throws -> KratonEndpoint {
         #if os(iOS)
         let hostname: String
         switch host {
@@ -118,14 +118,14 @@ extension Endpoint {
 
         let errorCode = getaddrinfo(hostname, "\(self.port)", &hints, &result)
         if errorCode != 0 {
-            throw DNSResolutionError(errorCode: errorCode, address: hostname)
+            throw EndpointResolutionError(errorCode: errorCode, address: hostname)
         }
 
         let addrInfo = result!.pointee
         if let ipv4Address = IPv4Address(addrInfo: addrInfo) {
-            return Endpoint(host: .ipv4(ipv4Address), port: port)
+            return KratonEndpoint(host: .ipv4(ipv4Address), port: port)
         } else if let ipv6Address = IPv6Address(addrInfo: addrInfo) {
-            return Endpoint(host: .ipv6(ipv6Address), port: port)
+            return KratonEndpoint(host: .ipv6(ipv6Address), port: port)
         } else {
             fatalError()
         }
