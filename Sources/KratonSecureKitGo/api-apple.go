@@ -77,14 +77,14 @@ func init() {
 	}()
 }
 
-//export wgSetLogger
-func wgSetLogger(context, loggerFn uintptr) {
+//export kratonSetLogger
+func kratonSetLogger(context, loggerFn uintptr) {
 	loggerCtx = unsafe.Pointer(context)
 	loggerFunc = unsafe.Pointer(loggerFn)
 }
 
-//export wgTurnOn
-func wgTurnOn(settings *C.char, tunFd int32) int32 {
+//export kratonTurnOn
+func kratonTurnOn(settings *C.char, tunFd int32) int32 {
 	logger := &device.Logger{
 		Verbosef: CLogger(0).Printf,
 		Errorf:   CLogger(1).Printf,
@@ -134,8 +134,8 @@ func wgTurnOn(settings *C.char, tunFd int32) int32 {
 	return i
 }
 
-//export wgTurnOff
-func wgTurnOff(tunnelHandle int32) {
+//export kratonTurnOff
+func kratonTurnOff(tunnelHandle int32) {
 	dev, ok := tunnelHandles[tunnelHandle]
 	if !ok {
 		return
@@ -144,8 +144,8 @@ func wgTurnOff(tunnelHandle int32) {
 	dev.Close()
 }
 
-//export wgSetConfig
-func wgSetConfig(tunnelHandle int32, settings *C.char) int64 {
+//export kratonSetConfig
+func kratonSetConfig(tunnelHandle int32, settings *C.char) int64 {
 	dev, ok := tunnelHandles[tunnelHandle]
 	if !ok {
 		return 0
@@ -161,8 +161,8 @@ func wgSetConfig(tunnelHandle int32, settings *C.char) int64 {
 	return 0
 }
 
-//export wgGetConfig
-func wgGetConfig(tunnelHandle int32) *C.char {
+//export kratonGetConfig
+func kratonGetConfig(tunnelHandle int32) *C.char {
 	device, ok := tunnelHandles[tunnelHandle]
 	if !ok {
 		return nil
@@ -174,8 +174,8 @@ func wgGetConfig(tunnelHandle int32) *C.char {
 	return C.CString(settings)
 }
 
-//export wgBumpSockets
-func wgBumpSockets(tunnelHandle int32) {
+//export kratonBumpSockets
+func kratonBumpSockets(tunnelHandle int32) {
 	dev, ok := tunnelHandles[tunnelHandle]
 	if !ok {
 		return
@@ -194,8 +194,8 @@ func wgBumpSockets(tunnelHandle int32) {
 	}()
 }
 
-//export wgDisableSomeRoamingForBrokenMobileSemantics
-func wgDisableSomeRoamingForBrokenMobileSemantics(tunnelHandle int32) {
+//export kratonDisableSomeRoamingForBrokenMobileSemantics
+func kratonDisableSomeRoamingForBrokenMobileSemantics(tunnelHandle int32) {
 	dev, ok := tunnelHandles[tunnelHandle]
 	if !ok {
 		return
@@ -203,8 +203,8 @@ func wgDisableSomeRoamingForBrokenMobileSemantics(tunnelHandle int32) {
 	dev.DisableSomeRoamingForBrokenMobileSemantics()
 }
 
-//export wgVersion
-func wgVersion() *C.char {
+//export kratonVersion
+func kratonVersion() *C.char {
 	// Return the build tag instead of trying to parse build info
 	return C.CString(buildTag)
 }

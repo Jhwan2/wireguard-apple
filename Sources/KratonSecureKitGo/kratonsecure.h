@@ -11,13 +11,13 @@
 #include <stdbool.h>
 
 typedef void(*logger_fn_t)(void *context, int level, const char *msg);
-extern void wgSetLogger(void *context, logger_fn_t logger_fn);
-extern int wgTurnOn(const char *settings, int32_t tun_fd);
-extern void wgTurnOff(int handle);
-extern int64_t wgSetConfig(int handle, const char *settings);
-extern char *wgGetConfig(int handle);
-extern void wgBumpSockets(int handle);
-extern void wgDisableSomeRoamingForBrokenMobileSemantics(int handle);
-extern const char *wgVersion();
+extern void kratonSetLogger(void *context, logger_fn_t logger_fn);
+extern int kratonTurnOn(const char *settings, int32_t tun_fd);
+extern void kratonTurnOff(int handle);
+extern int64_t kratonSetConfig(int handle, const char *settings);
+extern char *kratonGetConfig(int handle);
+extern void kratonBumpSockets(int handle);
+extern void kratonDisableSomeRoamingForBrokenMobileSemantics(int handle);
+extern const char *kratonVersion();
 
 #endif

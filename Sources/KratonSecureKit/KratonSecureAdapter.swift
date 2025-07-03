@@ -91,7 +91,7 @@ public class KratonSecureAdapter {
 
     /// Returns a KratonSecure version.
     class var backendVersion: String {
-        guard let ver = wgVersion() else { return "unknown" }
+        guard let ver = kratonVersion() else { return "unknown" }
         let str = String(cString: ver)
         free(UnsafeMutableRawPointer(mutating: ver))
         return str
@@ -139,14 +139,14 @@ public class KratonSecureAdapter {
     deinit {
         // Force remove logger to make sure that no further calls to the instance of this class
         // can happen after deallocation.
-        wgSetLogger(nil, nil)
+        kratonSetLogger(nil, nil)
 
         // Cancel network monitor
         networkMonitor?.cancel()
 
         // Shutdown the tunnel
         if case .started(let handle, _) = self.state {
-            wgTurnOff(handle)
+            kratonTurnOff(handle)
         }
     }
 
@@ -161,7 +161,7 @@ public class KratonSecureAdapter {
                 return
             }
 
-            if let settings = wgGetConfig(handle) {
+            if let settings = kratonGetConfig(handle) {
                 completionHandler(String(cString: settings))
                 free(settings)
             } else {
@@ -290,7 +290,7 @@ public class KratonSecureAdapter {
     /// Setup KratonSecure log handler.
     private func setupLogHandler() {
         let context = Unmanaged.passUnretained(self).toOpaque()
-        wgSetLogger(context) { context, logLevel, message in
+        kratonSetLogger(context) { context, logLevel, message in
             guard let context = context, let message = message else { return }
 
             let unretainedSelf = Unmanaged<KratonSecureAdapter>.fromOpaque(context)
@@ -373,12 +373,12 @@ public class KratonSecureAdapter {
             throw KratonSecureAdapterError.cannotLocateTunnelFileDescriptor
         }
 
-        let handle = wgTurnOn(wgConfig, tunnelFileDescriptor)
+        let handle = kratonTurnOn(wgConfig, tunnelFileDescriptor)
         if handle < 0 {
                             throw KratonSecureAdapterError.startKratonSecureBackend(handle)
         }
         #if os(iOS)
-        wgDisableSomeRoamingForBrokenMobileSemantics(handle)
+        kratonDisableSomeRoamingForBrokenMobileSemantics(handle)
         #endif
         return handle
     }
@@ -418,7 +418,7 @@ public class KratonSecureAdapter {
 
         #if os(macOS)
         if case .started(let handle, _) = self.state {
-            wgBumpSockets(handle)
+            kratonBumpSockets(handle)
         }
         #elseif os(iOS)
         switch self.state {
@@ -427,14 +427,14 @@ public class KratonSecureAdapter {
                 let (wgConfig, resolutionResults) = settingsGenerator.endpointUapiConfiguration()
                 self.logEndpointResolutionResults(resolutionResults)
 
-                wgSetConfig(handle, wgConfig)
-                wgDisableSomeRoamingForBrokenMobileSemantics(handle)
-                wgBumpSockets(handle)
+                kratonSetConfig(handle, wgConfig)
+                kratonDisableSomeRoamingForBrokenMobileSemantics(handle)
+                kratonBumpSockets(handle)
             } else {
                 self.logHandler(.verbose, "Connectivity offline, pausing backend.")
 
                 self.state = .temporaryShutdown(settingsGenerator)
-                wgTurnOff(handle)
+                kratonTurnOff(handle)
             }
 
         case .temporaryShutdown(let settingsGenerator):
