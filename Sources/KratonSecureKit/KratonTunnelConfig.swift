@@ -5,10 +5,10 @@ import Foundation
 
 public final class KratonTunnelConfig {
     public var name: String?
-    public var interface: KratonInterfaceConfig
-    public let peers: [KratonPeerConfig]
+    public var interface: KratonNetworkInterface
+    public let peers: [KratonSecurePeer]
 
-    public init(name: String?, interface: KratonInterfaceConfig, peers: [KratonPeerConfig]) {
+    public init(name: String?, interface: KratonNetworkInterface, peers: [KratonSecurePeer]) {
         self.interface = interface
         self.peers = peers
         self.name = name

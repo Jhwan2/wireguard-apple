@@ -11,7 +11,7 @@ extension DNSResolver {
     /// Concurrent queue used for DNS resolutions
     private static let resolverQueue = DispatchQueue(label: "DNSResolverQueue", qos: .default, attributes: .concurrent)
 
-    static func resolveSync(endpoints: [Endpoint?]) -> [Result<Endpoint, EndpointResolutionError>?] {
+    static func resolveSync(endpoints: [KratonEndpoint?]) -> [Result<KratonEndpoint, EndpointResolutionError>?] {
         let isAllEndpointsAlreadyResolved = endpoints.allSatisfy { maybeEndpoint -> Bool in
             return maybeEndpoint?.hasHostAsIPAddress() ?? true
         }

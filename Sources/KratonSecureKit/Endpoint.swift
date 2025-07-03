@@ -4,7 +4,7 @@
 import Foundation
 import Network
 
-public struct Endpoint {
+public struct KratonEndpoint {
     public let host: NWEndpoint.Host
     public let port: NWEndpoint.Port
 
@@ -14,20 +14,20 @@ public struct Endpoint {
     }
 }
 
-extension Endpoint: Equatable {
-    public static func == (lhs: Endpoint, rhs: Endpoint) -> Bool {
+extension KratonEndpoint: Equatable {
+    public static func == (lhs: KratonEndpoint, rhs: KratonEndpoint) -> Bool {
         return lhs.host == rhs.host && lhs.port == rhs.port
     }
 }
 
-extension Endpoint: Hashable {
+extension KratonEndpoint: Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(host)
         hasher.combine(port)
     }
 }
 
-extension Endpoint {
+extension KratonEndpoint {
     public var stringRepresentation: String {
         switch host {
         case .name(let hostname, _):
@@ -72,7 +72,7 @@ extension Endpoint {
     }
 }
 
-extension Endpoint {
+extension KratonEndpoint {
     public func hasHostAsIPAddress() -> Bool {
         switch host {
         case .name:

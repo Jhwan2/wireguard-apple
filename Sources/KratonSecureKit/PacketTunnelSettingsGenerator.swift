@@ -10,13 +10,13 @@ import KratonSecureKitC
 #endif
 
 /// A type alias for `Result` type that holds a tuple with source and resolved endpoint.
-typealias EndpointResolutionResult = Result<(Endpoint, Endpoint), DNSResolutionError>
+typealias EndpointResolutionResult = Result<(KratonEndpoint, KratonEndpoint), EndpointResolutionError>
 
 class PacketTunnelSettingsGenerator {
     let tunnelConfiguration: KratonTunnelConfig
-    let resolvedEndpoints: [Endpoint?]
+    let resolvedEndpoints: [KratonEndpoint?]
 
-    init(tunnelConfiguration: KratonTunnelConfig, resolvedEndpoints: [Endpoint?]) {
+    init(tunnelConfiguration: KratonTunnelConfig, resolvedEndpoints: [KratonEndpoint?]) {
         self.tunnelConfiguration = tunnelConfiguration
         self.resolvedEndpoints = resolvedEndpoints
     }
@@ -173,11 +173,11 @@ class PacketTunnelSettingsGenerator {
         return (ipv4IncludedRoutes, ipv6IncludedRoutes)
     }
 
-    private class func reresolveEndpoint(endpoint: Endpoint) -> EndpointResolutionResult {
+    private class func reresolveEndpoint(endpoint: KratonEndpoint) -> EndpointResolutionResult {
         return Result { (endpoint, try endpoint.withReresolvedIP()) }
-            .mapError { error -> DNSResolutionError in
+            .mapError { error -> EndpointResolutionError in
                 // swiftlint:disable:next force_cast
-                return error as! DNSResolutionError
+                return error as! EndpointResolutionError
             }
     }
 }

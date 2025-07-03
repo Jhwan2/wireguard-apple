@@ -4,7 +4,7 @@
 import Foundation
 import Network
 
-public struct KratonInterfaceConfig {
+public struct KratonNetworkInterface {
     public var privateKey: KratonPrivateKey
     public var addresses = [IPAddressRange]()
     public var listenPort: UInt16?
@@ -17,8 +17,8 @@ public struct KratonInterfaceConfig {
     }
 }
 
-extension KratonInterfaceConfig: Equatable {
-    public static func == (lhs: KratonInterfaceConfig, rhs: KratonInterfaceConfig) -> Bool {
+extension KratonNetworkInterface: Equatable {
+    public static func == (lhs: KratonNetworkInterface, rhs: KratonNetworkInterface) -> Bool {
         let lhsAddresses = lhs.addresses.filter { $0.address is IPv4Address } + lhs.addresses.filter { $0.address is IPv6Address }
         let rhsAddresses = rhs.addresses.filter { $0.address is IPv4Address } + rhs.addresses.filter { $0.address is IPv6Address }
 

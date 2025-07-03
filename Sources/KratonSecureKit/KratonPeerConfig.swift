@@ -3,11 +3,11 @@
 
 import Foundation
 
-public struct KratonPeerConfig {
+public struct KratonSecurePeer {
     public var publicKey: KratonPublicKey
     public var preSharedKey: KratonPreSharedKey?
     public var allowedIPs = [IPAddressRange]()
-    public var endpoint: Endpoint?
+    public var endpoint: KratonEndpoint?
     public var persistentKeepAlive: UInt16?
     public var rxBytes: UInt64?
     public var txBytes: UInt64?
@@ -18,8 +18,8 @@ public struct KratonPeerConfig {
     }
 }
 
-extension KratonPeerConfig: Equatable {
-    public static func == (lhs: KratonPeerConfig, rhs: KratonPeerConfig) -> Bool {
+extension KratonSecurePeer: Equatable {
+    public static func == (lhs: KratonSecurePeer, rhs: KratonSecurePeer) -> Bool {
         return lhs.publicKey == rhs.publicKey &&
             lhs.preSharedKey == rhs.preSharedKey &&
             Set(lhs.allowedIPs) == Set(rhs.allowedIPs) &&
@@ -28,7 +28,7 @@ extension KratonPeerConfig: Equatable {
     }
 }
 
-extension KratonPeerConfig: Hashable {
+extension KratonSecurePeer: Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(publicKey)
         hasher.combine(preSharedKey)
