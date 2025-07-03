@@ -26,16 +26,39 @@ public enum KratonSecureConnectionError: Error {
     case backendInitializationFailed(Int32)
 }
 
-/// Enum representing internal state of the `KratonSecureAdapter`
-private enum State {
-    /// The tunnel is stopped
+/// Enum representing enhanced internal state of the `KratonSecureAdapter`
+private enum KratonConnectionState {
+    /// The tunnel is completely stopped
     case stopped
+    
+    /// The tunnel is initializing
+    case initializing(_ settingsGenerator: PacketTunnelSettingsGenerator)
 
-    /// The tunnel is up and running
-    case started(_ handle: Int32, _ settingsGenerator: PacketTunnelSettingsGenerator)
+    /// The tunnel is up and running with performance metrics
+    case connected(_ handle: Int32, _ settingsGenerator: PacketTunnelSettingsGenerator, _ connectionTime: Date)
 
     /// The tunnel is temporarily shutdown due to device going offline
-    case temporaryShutdown(_ settingsGenerator: PacketTunnelSettingsGenerator)
+    case suspended(_ settingsGenerator: PacketTunnelSettingsGenerator, _ suspendTime: Date)
+    
+    /// The tunnel encountered an error and is attempting recovery
+    case recovering(_ settingsGenerator: PacketTunnelSettingsGenerator, _ retryCount: Int)
+    
+    var isActive: Bool {
+        switch self {
+        case .connected: return true
+        default: return false
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .stopped: return "STOPPED"
+        case .initializing: return "INITIALIZING"
+        case .connected(_, _, let time): return "CONNECTED (since \(time))"
+        case .suspended(_, let time): return "SUSPENDED (since \(time))"
+        case .recovering(_, let count): return "RECOVERING (attempt \(count))"
+        }
+    }
 }
 
 public class KratonSecureAdapter {
@@ -53,8 +76,8 @@ public class KratonSecureAdapter {
     /// Private queue used to synchronize access to `KratonSecureAdapter` members.
     private let workQueue = DispatchQueue(label: "KratonSecureAdapterWorkQueue")
 
-    /// Adapter state.
-    private var state: State = .stopped
+    /// Enhanced adapter state with detailed tracking.
+    private var state: KratonConnectionState = .stopped
 
     /// Tunnel device file descriptor.
     private var tunnelFileDescriptor: Int32? {
@@ -145,7 +168,7 @@ public class KratonSecureAdapter {
         networkMonitor?.cancel()
 
         // Shutdown the tunnel
-        if case .started(let handle, _) = self.state {
+        if case .connected(let handle, _, _) = self.state {
             kratonTurnOff(handle)
         }
     }
@@ -156,7 +179,7 @@ public class KratonSecureAdapter {
     /// - Parameter completionHandler: completion handler.
     public func getRuntimeConfiguration(completionHandler: @escaping (String?) -> Void) {
         workQueue.async {
-            guard case .started(let handle, _) = self.state else {
+            guard case .connected(let handle, _, _) = self.state else {
                 completionHandler(nil)
                 return
             }
@@ -189,15 +212,20 @@ public class KratonSecureAdapter {
 
             do {
                 let settingsGenerator = try self.makeSettingsGenerator(with: tunnelConfiguration)
+                
+                // Enhanced state tracking
+                self.state = .initializing(settingsGenerator)
+                self.logHandler(.info, "Kraton connection initializing...")
+                
                 try self.setNetworkSettings(settingsGenerator.generateNetworkSettings())
 
                 let (wgConfig, resolutionResults) = settingsGenerator.uapiConfiguration()
                 self.logEndpointResolutionResults(resolutionResults)
 
-                self.state = .started(
-                    try self.startKratonSecureBackend(wgConfig: wgConfig),
-                    settingsGenerator
-                )
+                let handle = try self.startKratonSecureBackend(wgConfig: wgConfig)
+                self.state = .connected(handle, settingsGenerator, Date())
+                
+                self.logHandler(.info, "Kraton connection established successfully - State: \(self.state.description)")
                 self.networkMonitor = networkMonitor
                 completionHandler(nil)
             } catch let error as KratonSecureConnectionError {
@@ -209,19 +237,25 @@ public class KratonSecureAdapter {
         }
     }
 
-    /// Stop the tunnel.
+    /// Stop the tunnel with enhanced state management.
     /// - Parameter completionHandler: completion handler.
     public func stop(completionHandler: @escaping (KratonSecureConnectionError?) -> Void) {
         workQueue.async {
+            self.logHandler(.info, "Stopping Kraton connection - Current state: \(self.state.description)")
+            
             switch self.state {
-            case .started(let handle, _):
-                wgTurnOff(handle)
+            case .connected(let handle, _, let connectionTime):
+                let duration = Date().timeIntervalSince(connectionTime)
+                self.logHandler(.info, "Terminating connection after \(String(format: "%.2f", duration)) seconds")
+                kratonTurnOff(handle)
 
-            case .temporaryShutdown:
+            case .suspended, .recovering, .initializing:
+                self.logHandler(.info, "Stopping from intermediate state")
                 break
 
             case .stopped:
-                completionHandler(.invalidState)
+                self.logHandler(.warning, "Attempted to stop already stopped connection")
+                completionHandler(.invalidConnectionState)
                 return
             }
 
@@ -229,6 +263,7 @@ public class KratonSecureAdapter {
             self.networkMonitor = nil
 
             self.state = .stopped
+            self.logHandler(.info, "Kraton connection stopped successfully")
 
             completionHandler(nil)
         }
@@ -287,7 +322,7 @@ public class KratonSecureAdapter {
 
     // MARK: - Private methods
 
-    /// Setup KratonSecure log handler.
+    /// Setup KratonSecure enhanced log handler with custom formatting.
     private func setupLogHandler() {
         let context = Unmanaged.passUnretained(self).toOpaque()
         kratonSetLogger(context) { context, logLevel, message in
@@ -296,10 +331,14 @@ public class KratonSecureAdapter {
             let unretainedSelf = Unmanaged<KratonSecureAdapter>.fromOpaque(context)
                 .takeUnretainedValue()
 
-            let swiftString = String(cString: message).trimmingCharacters(in: .newlines)
-            let tunnelLogLevel = KratonSecureLogLevel(rawValue: logLevel) ?? .verbose
+            let rawMessage = String(cString: message).trimmingCharacters(in: .newlines)
+            let tunnelLogLevel = KratonSecureLogLevel(rawValue: logLevel) ?? .debug
+            
+            // Enhanced logging with timestamp and categorization
+            let timestamp = DateFormatter.kratonLogFormatter.string(from: Date())
+            let processedMessage = "[\(timestamp)] \(tunnelLogLevel.description) KratonSecure: \(rawMessage)"
 
-            unretainedSelf.logHandler(tunnelLogLevel, swiftString)
+            unretainedSelf.logHandler(tunnelLogLevel, processedMessage)
         }
     }
 
@@ -466,10 +505,26 @@ public class KratonSecureAdapter {
     }
 }
 
-/// A enum describing KratonSecure log levels defined in `api-apple.go`.
-public enum KratonSecureLogLevel: Int32 {
-    case verbose = 0
-    case error = 1
+/// A enum describing KratonSecure log levels with enhanced categorization.
+public enum KratonSecureLogLevel: Int32, CaseIterable {
+    case debug = 0
+    case info = 1
+    case warning = 2
+    case error = 3
+    case critical = 4
+    
+    // Legacy compatibility
+    static var verbose: KratonSecureLogLevel { return .debug }
+    
+    var description: String {
+        switch self {
+        case .debug: return "🔍 DEBUG"
+        case .info: return "ℹ️ INFO"
+        case .warning: return "⚠️ WARNING"
+        case .error: return "❌ ERROR"
+        case .critical: return "🚨 CRITICAL"
+        }
+    }
 }
 
 private extension Network.NWPath.Status {
@@ -484,4 +539,14 @@ private extension Network.NWPath.Status {
             return true
         }
     }
+}
+
+private extension DateFormatter {
+    /// Custom date formatter for Kraton logging system
+    static let kratonLogFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
 }
