@@ -19,8 +19,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"runtime/debug"
-	"strings"
 	"time"
 	"unsafe"
 
@@ -57,6 +55,9 @@ type tunnelHandle struct {
 }
 
 var tunnelHandles = make(map[int32]tunnelHandle)
+
+// buildTag will be set during build time via ldflags
+var buildTag = "unknown"
 
 func init() {
 	signals := make(chan os.Signal)
@@ -204,20 +205,8 @@ func wgDisableSomeRoamingForBrokenMobileSemantics(tunnelHandle int32) {
 
 //export wgVersion
 func wgVersion() *C.char {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return C.CString("unknown")
-	}
-	for _, dep := range info.Deps {
-		if dep.Path == "golang.kraton.ai/secure" {
-			parts := strings.Split(dep.Version, "-")
-			if len(parts) == 3 && len(parts[2]) == 12 {
-				return C.CString(parts[2][:7])
-			}
-			return C.CString(dep.Version)
-		}
-	}
-	return C.CString("unknown")
+	// Return the build tag instead of trying to parse build info
+	return C.CString(buildTag)
 }
 
 func main() {}
