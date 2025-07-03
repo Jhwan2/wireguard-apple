@@ -85,15 +85,20 @@ func kratonSetLogger(context, loggerFn uintptr) {
 
 //export kratonTurnOn
 func kratonTurnOn(settings *C.char, tunFd int32) int32 {
+	// Enhanced logging for debugging
+	CLogger(1).Printf("🚀 kratonTurnOn called with buildTag: %s, tunFd: %d", buildTag, tunFd)
+
 	logger := &device.Logger{
 		Verbosef: CLogger(0).Printf,
 		Errorf:   CLogger(1).Printf,
 	}
 	dupTunFd, err := unix.Dup(int(tunFd))
 	if err != nil {
-		logger.Errorf("Unable to dup tun fd: %v", err)
+		logger.Errorf("❌ Unable to dup tun fd: %v", err)
+		CLogger(1).Printf("❌ kratonTurnOn failed at file descriptor duplication: %v", err)
 		return -1
 	}
+	CLogger(1).Printf("✅ File descriptor duplicated successfully: %d", dupTunFd)
 
 	err = unix.SetNonblock(dupTunFd, true)
 	if err != nil {
@@ -112,13 +117,16 @@ func kratonTurnOn(settings *C.char, tunFd int32) int32 {
 
 	err = dev.IpcSet(C.GoString(settings))
 	if err != nil {
-		logger.Errorf("Unable to set IPC settings: %v", err)
+		logger.Errorf("❌ Unable to set IPC settings: %v", err)
+		CLogger(1).Printf("❌ kratonTurnOn failed at IPC settings: %v", err)
 		unix.Close(dupTunFd)
 		return -1
 	}
+	CLogger(1).Printf("✅ IPC settings configured successfully")
 
 	dev.Up()
 	logger.Verbosef("Device started")
+	CLogger(1).Printf("✅ Device started successfully")
 
 	var i int32
 	for i = 0; i < math.MaxInt32; i++ {
@@ -131,6 +139,7 @@ func kratonTurnOn(settings *C.char, tunFd int32) int32 {
 		return -1
 	}
 	tunnelHandles[i] = tunnelHandle{dev, logger}
+	CLogger(1).Printf("✅ kratonTurnOn completed successfully with handle: %d", i)
 	return i
 }
 
