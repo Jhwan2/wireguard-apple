@@ -500,6 +500,33 @@ public class KratonSecureAdapter {
                 self.logHandler(.error, "Failed to restart backend: \(error.localizedDescription)")
             }
 
+        case .initializing(_):
+            // During initialization, wait for the connection to be established
+            self.logHandler(.debug, "Network change detected during initialization, ignoring.")
+            
+        case .recovering(let settingsGenerator, let retryCount):
+            // During recovery, attempt to reconnect if network is available
+            guard path.status.isSatisfiable else { return }
+            
+            self.logHandler(.info, "Network available during recovery, attempting reconnection (retry \(retryCount)).")
+            
+            do {
+                try self.setNetworkSettings(settingsGenerator.generateNetworkSettings())
+                
+                let (wgConfig, resolutionResults) = settingsGenerator.uapiConfiguration()
+                self.logEndpointResolutionResults(resolutionResults)
+                
+                self.state = .connected(
+                    try self.startKratonSecureBackend(wgConfig: wgConfig),
+                    settingsGenerator,
+                    Date()
+                )
+            } catch {
+                self.logHandler(.error, "Failed to recover connection: \(error.localizedDescription)")
+                // Increment retry count and continue recovery
+                self.state = .recovering(settingsGenerator, retryCount + 1)
+            }
+
         case .stopped:
             // no-op
             break
