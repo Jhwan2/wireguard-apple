@@ -11,7 +11,7 @@ extension DNSResolver {
     /// Concurrent queue used for DNS resolutions
     private static let resolverQueue = DispatchQueue(label: "DNSResolverQueue", qos: .default, attributes: .concurrent)
 
-    static func resolveSync(endpoints: [Endpoint?]) -> [Result<Endpoint, DNSResolutionError>?] {
+    static func resolveSync(endpoints: [Endpoint?]) -> [Result<Endpoint, EndpointResolutionError>?] {
         let isAllEndpointsAlreadyResolved = endpoints.allSatisfy { maybeEndpoint -> Bool in
             return maybeEndpoint?.hasHostAsIPAddress() ?? true
         }
@@ -22,16 +22,16 @@ extension DNSResolver {
             }
         }
 
-        return endpoints.concurrentMap(queue: resolverQueue) { endpoint -> Result<Endpoint, DNSResolutionError>? in
+        return endpoints.concurrentMap(queue: resolverQueue) { endpoint -> Result<Endpoint, EndpointResolutionError>? in
             guard let endpoint = endpoint else { return nil }
 
             if endpoint.hasHostAsIPAddress() {
                 return .success(endpoint)
             } else {
                 return Result { try DNSResolver.resolveSync(endpoint: endpoint) }
-                    .mapError { error -> DNSResolutionError in
+                    .mapError { error -> EndpointResolutionError in
                         // swiftlint:disable:next force_cast
-                        return error as! DNSResolutionError
+                        return error as! EndpointResolutionError
                     }
             }
         }
@@ -55,7 +55,7 @@ extension DNSResolver {
 
         let errorCode = getaddrinfo(name, "\(endpoint.port)", &hints, &resultPointer)
         if errorCode != 0 {
-            throw DNSResolutionError(errorCode: errorCode, address: name)
+            throw EndpointResolutionError(errorCode: errorCode, address: name)
         }
 
         var ipv4Address: IPv4Address?
@@ -137,8 +137,8 @@ extension Endpoint {
     }
 }
 
-/// An error type describing DNS resolution error
-public struct DNSResolutionError: LocalizedError {
+/// An error type describing endpoint resolution error
+public struct EndpointResolutionError: LocalizedError {
     public let errorCode: Int32
     public let address: String
 

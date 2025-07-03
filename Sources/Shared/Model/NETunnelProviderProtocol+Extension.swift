@@ -3,12 +3,12 @@
 
 import NetworkExtension
 
-enum PacketTunnelProviderError: String, Error {
-    case savedProtocolConfigurationIsInvalid
-    case dnsResolutionFailure
-    case couldNotStartBackend
-    case couldNotDetermineFileDescriptor
-    case couldNotSetNetworkSettings
+enum KratonTunnelProviderError: String, Error {
+    case invalidSavedConfiguration
+    case endpointResolutionFailed
+    case backendStartupFailed
+    case fileDescriptorNotFound
+    case networkSettingsConfigurationFailed
 }
 
 extension NETunnelProviderProtocol {

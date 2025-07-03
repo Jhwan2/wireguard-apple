@@ -9,21 +9,21 @@ import KratonSecureKitGo
 import KratonSecureKitC
 #endif
 
-public enum KratonSecureAdapterError: Error {
+public enum KratonSecureConnectionError: Error {
     /// Failure to locate tunnel file descriptor.
-    case cannotLocateTunnelFileDescriptor
+    case tunnelDescriptorNotFound
 
     /// Failure to perform an operation in such state.
-    case invalidState
+    case invalidConnectionState
 
     /// Failure to resolve endpoints.
-    case dnsResolution([DNSResolutionError])
+    case endpointResolutionFailed([EndpointResolutionError])
 
     /// Failure to set network settings.
-    case setNetworkSettings(Error)
+    case networkConfigurationFailed(Error)
 
     /// Failure to start Kraton secure backend.
-    case startKratonSecureBackend(Int32)
+    case backendInitializationFailed(Int32)
 }
 
 /// Enum representing internal state of the `KratonSecureAdapter`
@@ -61,7 +61,7 @@ public class KratonSecureAdapter {
         var ctlInfo = ctl_info()
         withUnsafeMutablePointer(to: &ctlInfo.ctl_name) {
             $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: $0.pointee)) {
-                _ = strcpy($0, "com.apple.net.utun_control")
+                _ = strcpy($0, "com.apple.net.kraton_control")
             }
         }
         for fd: Int32 in 0...1024 {
@@ -174,7 +174,7 @@ public class KratonSecureAdapter {
     /// - Parameters:
     ///   - tunnelConfiguration: tunnel configuration.
     ///   - completionHandler: completion handler.
-    public func start(tunnelConfiguration: KratonTunnelConfig, completionHandler: @escaping (KratonSecureAdapterError?) -> Void) {
+    public func start(tunnelConfiguration: KratonTunnelConfig, completionHandler: @escaping (KratonSecureConnectionError?) -> Void) {
         workQueue.async {
             guard case .stopped = self.state else {
                 completionHandler(.invalidState)
@@ -200,7 +200,7 @@ public class KratonSecureAdapter {
                 )
                 self.networkMonitor = networkMonitor
                 completionHandler(nil)
-            } catch let error as KratonSecureAdapterError {
+            } catch let error as KratonSecureConnectionError {
                 networkMonitor.cancel()
                 completionHandler(error)
             } catch {
@@ -211,7 +211,7 @@ public class KratonSecureAdapter {
 
     /// Stop the tunnel.
     /// - Parameter completionHandler: completion handler.
-    public func stop(completionHandler: @escaping (KratonSecureAdapterError?) -> Void) {
+    public func stop(completionHandler: @escaping (KratonSecureConnectionError?) -> Void) {
         workQueue.async {
             switch self.state {
             case .started(let handle, _):
@@ -238,7 +238,7 @@ public class KratonSecureAdapter {
     /// - Parameters:
     ///   - tunnelConfiguration: tunnel configuration.
     ///   - completionHandler: completion handler.
-    public func update(tunnelConfiguration: KratonTunnelConfig, completionHandler: @escaping (KratonSecureAdapterError?) -> Void) {
+    public func update(tunnelConfiguration: KratonTunnelConfig, completionHandler: @escaping (KratonSecureConnectionError?) -> Void) {
         workQueue.async {
             if case .stopped = self.state {
                 completionHandler(.invalidState)
@@ -277,7 +277,7 @@ public class KratonSecureAdapter {
                 }
 
                 completionHandler(nil)
-            } catch let error as KratonSecureAdapterError {
+            } catch let error as KratonSecureConnectionError {
                 completionHandler(error)
             } catch {
                 fatalError()
@@ -309,7 +309,7 @@ public class KratonSecureAdapter {
     ///
     /// - Parameters:
     ///   - networkSettings: an instance of type `NEPacketTunnelNetworkSettings`.
-    /// - Throws: an error of type `KratonSecureAdapterError`.
+    /// - Throws: an error of type `KratonSecureConnectionError`.
     /// - Returns: `PacketTunnelSettingsGenerator`.
     private func setNetworkSettings(_ networkSettings: NEPacketTunnelNetworkSettings) throws {
         var systemError: Error?
@@ -330,7 +330,7 @@ public class KratonSecureAdapter {
 
         if condition.wait(until: Date().addingTimeInterval(setTunnelNetworkSettingsTimeout)) {
             if let systemError = systemError {
-                throw KratonSecureAdapterError.setNetworkSettings(systemError)
+                throw KratonSecureConnectionError.networkConfigurationFailed(systemError)
             }
         } else {
             self.logHandler(.error, "setTunnelNetworkSettings timed out after 5 seconds; proceeding anyway")
@@ -339,7 +339,7 @@ public class KratonSecureAdapter {
 
     /// Resolve peers of the given tunnel configuration.
     /// - Parameter tunnelConfiguration: tunnel configuration.
-    /// - Throws: an error of type `KratonSecureAdapterError`.
+    /// - Throws: an error of type `KratonSecureConnectionError`.
     /// - Returns: The list of resolved endpoints.
     private func resolvePeers(for tunnelConfiguration: KratonTunnelConfig) throws -> [Endpoint?] {
         let endpoints = tunnelConfiguration.peers.map { $0.endpoint }
@@ -353,7 +353,7 @@ public class KratonSecureAdapter {
         }
         assert(endpoints.count == resolutionResults.count)
         guard resolutionErrors.isEmpty else {
-            throw KratonSecureAdapterError.dnsResolution(resolutionErrors)
+            throw KratonSecureConnectionError.endpointResolutionFailed(resolutionErrors)
         }
 
         let resolvedEndpoints = resolutionResults.map { result -> Endpoint? in
@@ -366,16 +366,16 @@ public class KratonSecureAdapter {
 
     /// Start KratonSecure backend.
     /// - Parameter wgConfig: KratonSecure configuration
-    /// - Throws: an error of type `KratonSecureAdapterError`
+    /// - Throws: an error of type `KratonSecureConnectionError`
     /// - Returns: tunnel handle
     private func startKratonSecureBackend(wgConfig: String) throws -> Int32 {
         guard let tunnelFileDescriptor = self.tunnelFileDescriptor else {
-            throw KratonSecureAdapterError.cannotLocateTunnelFileDescriptor
+            throw KratonSecureConnectionError.tunnelDescriptorNotFound
         }
 
         let handle = kratonTurnOn(wgConfig, tunnelFileDescriptor)
         if handle < 0 {
-                            throw KratonSecureAdapterError.startKratonSecureBackend(handle)
+                            throw KratonSecureConnectionError.backendInitializationFailed(handle)
         }
         #if os(iOS)
         kratonDisableSomeRoamingForBrokenMobileSemantics(handle)
@@ -385,7 +385,7 @@ public class KratonSecureAdapter {
 
     /// Resolves the hostnames in the given tunnel configuration and return settings generator.
     /// - Parameter tunnelConfiguration: an instance of type `KratonTunnelConfig`.
-    /// - Throws: an error of type `KratonSecureAdapterError`.
+    /// - Throws: an error of type `KratonSecureConnectionError`.
     /// - Returns: an instance of type `PacketTunnelSettingsGenerator`.
     private func makeSettingsGenerator(with tunnelConfiguration: KratonTunnelConfig) throws -> PacketTunnelSettingsGenerator {
         return PacketTunnelSettingsGenerator(
