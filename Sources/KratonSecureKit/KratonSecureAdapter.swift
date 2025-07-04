@@ -84,7 +84,7 @@ public class KratonSecureAdapter {
         var ctlInfo = ctl_info()
         withUnsafeMutablePointer(to: &ctlInfo.ctl_name) {
             $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: $0.pointee)) {
-                _ = strcpy($0, "com.apple.net.kraton_control")
+                _ = strcpy($0, "com.apple.net.utun_control")
             }
         }
         for fd: Int32 in 0...1024 {
