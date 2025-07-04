@@ -1,5 +1,8 @@
 // swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
+//
+// This package is based on WireGuardKit (https://git.zx2c4.com/wireguard-apple)
+// WireGuard is a registered trademark of Jason A. Donenfeld.
 
 import PackageDescription
 

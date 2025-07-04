@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright © 2018-2023 Kraton AI Corporation. All Rights Reserved.
+//
+// This file is based on WireGuardKit (https://git.zx2c4.com/wireguard-apple)
+// WireGuard is a registered trademark of Jason A. Donenfeld.
 
 import Foundation
 import Security
