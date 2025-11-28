@@ -56,8 +56,9 @@ type tunnelHandle struct {
 
 var tunnelHandles = make(map[int32]tunnelHandle)
 
-// buildTag will be set during build time via ldflags
+// buildTag and buildTimestamp will be set during build time via ldflags
 var buildTag = "unknown"
+var buildTimestamp = "unknown"
 
 func init() {
 	signals := make(chan os.Signal)
@@ -214,8 +215,8 @@ func kratonDisableSomeRoamingForBrokenMobileSemantics(tunnelHandle int32) {
 
 //export kratonVersion
 func kratonVersion() *C.char {
-	// Return the build tag instead of trying to parse build info
-	return C.CString(buildTag)
+	// Return the build tag with timestamp for unique identification
+	return C.CString(fmt.Sprintf("%s_%s", buildTag, buildTimestamp))
 }
 
 func main() {}

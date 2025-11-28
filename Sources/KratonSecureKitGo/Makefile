@@ -21,9 +21,10 @@ GOARCH_x86_64 := amd64
 GOOS_macosx := darwin
 GOOS_iphoneos := ios
 
-# Generate build tag from git commit
+# Generate build tag from git commit with timestamp for unique binary hash
 BUILD_TAG ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-KRATON_BUILD_TAG := kraton_$(BUILD_TAG)
+BUILD_TIMESTAMP := $(shell date +%Y%m%d%H%M%S)
+KRATON_BUILD_TAG := kraton_$(BUILD_TAG)_$(BUILD_TIMESTAMP)
 
 build: $(DESTDIR)/libwg-go.a
 version-header: $(DESTDIR)/wireguard-go-version.h
@@ -44,8 +45,8 @@ $(BUILDDIR)/libwg-go-$(1).a: export CGO_LDFLAGS := $(CFLAGS_PREFIX) $(ARCH)
 $(BUILDDIR)/libwg-go-$(1).a: export GOOS := $(GOOS_$(PLATFORM_NAME))
 $(BUILDDIR)/libwg-go-$(1).a: export GOARCH := $(GOARCH_$(1))
 $(BUILDDIR)/libwg-go-$(1).a: $(GOROOT)/.prepared go.mod
-	go build -tags ios \
-		-ldflags "-w -X main.buildTag=$(KRATON_BUILD_TAG)" \
+	go build -tags ios -trimpath \
+		-ldflags "-w -s -X main.buildTag=$(KRATON_BUILD_TAG) -X main.buildTimestamp=$(BUILD_TIMESTAMP)" \
 		-v -o "$(BUILDDIR)/libwg-go-$(1).a" -buildmode c-archive
 	rm -f "$(BUILDDIR)/libwg-go-$(1).h"
 endef
